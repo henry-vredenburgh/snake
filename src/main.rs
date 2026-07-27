@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 
 fn main() {
 
-    let snake_tick = Duration::from_millis(25);
+    let snake_tick = Duration::from_millis(10);
     let mut last_snake_update = Instant::now();
     let mut game = game::Game::new();
     game.init_game();

@@ -100,7 +100,7 @@ impl Game {
 
      fn recalc_pos(&mut self) {
         let cp =  self.snake.position;
-        const MOVE_PIXELS: usize = 5;
+        const MOVE_PIXELS: usize = 3;
         match self.snake.direction {
             Direction::Up => { 
                 let new_position = Position::new(cp.x, cp.y - MOVE_PIXELS);
