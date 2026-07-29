@@ -1,6 +1,8 @@
 use crate::game::Position;
 
 use crate::LENGTH;
+use crate::BORDER;
+use crate::BLOB_SIZE;
 
 
 #[repr(u32)]
@@ -12,7 +14,7 @@ pub enum Color {
 }
 
 pub fn create_boarder(buffer: &mut Vec<u32>) {
-    const BORDER: usize = 100;
+
 
     for x in 0..LENGTH {    
         for y in 0..LENGTH {
@@ -30,8 +32,8 @@ pub fn create_boarder(buffer: &mut Vec<u32>) {
 }
 
 pub fn paint_blob(buffer: &mut Vec<u32>, center: &Position, color: Color) {
-    for x in center.x-10..center.x+10 {
-        for y in center.y-10..center.y+10 {
+    for x in center.x-BLOB_SIZE..center.x+BLOB_SIZE {
+        for y in center.y-BLOB_SIZE..center.y+BLOB_SIZE {
 
             paint(buffer, &Position::new(x,y), color);
         }

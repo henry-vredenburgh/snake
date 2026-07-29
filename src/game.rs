@@ -4,6 +4,8 @@ use minifb::{Key, KeyRepeat};
 use minifb::{Key::P, Window, WindowOptions};
 use rand::RngExt;
 use crate::LENGTH;
+use crate::BLOB_SIZE;
+use crate::BORDER;
 use crate::paint::{paint_blob, Color};
 
 
@@ -80,6 +82,10 @@ impl Game {
         return self.alive;
     }
 
+    fn kill_game(&mut self) {
+        self.alive = false;
+    }
+
     pub fn init_game(&mut self) {
         crate::paint::create_boarder(&mut self.buffer);
     }
@@ -90,17 +96,26 @@ impl Game {
         self.move_snake();
     }
 
+    fn is_in_bounds(&mut self) {
+        let pos = self.snake.position;
+        if pos.x - BLOB_SIZE < BORDER || pos.x + BLOB_SIZE >= LENGTH - BORDER || pos.y - BLOB_SIZE <  BORDER || pos.y + BLOB_SIZE >= LENGTH - 100 {
+            println!("Snake out of bounds. Game over!");
+            self.kill_game();
+        }
+    }
+
     fn move_snake(&mut self) {
         let old_pos = self.snake.position;
         self.recalc_pos();
         let new_pos = self.snake.position;
+        self.is_in_bounds();
         paint_blob(&mut self.buffer, &old_pos, Color::Black);
         paint_blob(&mut self.buffer, &new_pos, Color::White);
     }
 
      fn recalc_pos(&mut self) {
         let cp =  self.snake.position;
-        const MOVE_PIXELS: usize = 3;
+        const MOVE_PIXELS: usize = 5;
         match self.snake.direction {
             Direction::Up => { 
                 let new_position = Position::new(cp.x, cp.y - MOVE_PIXELS);
@@ -121,8 +136,8 @@ impl Game {
         }
     }
 
-    pub fn collect_inputs(&mut self) {
-        self.window.get_keys_pressed(KeyRepeat::No).iter().for_each(|key|
+    pub fn read_inputs_and_change_direction(&mut self) {
+        self.window.get_keys_pressed(KeyRepeat::No).iter().for_each(|key: &Key|
         match key {
             Key::Up => self.snake.direction = Direction::Up,
             Key::Down => self.snake.direction = Direction::Down,
