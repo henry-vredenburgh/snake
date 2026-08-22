@@ -1,29 +1,13 @@
-#![allow(unused)]
-
 use minifb::{Key, KeyRepeat};
 use minifb::{Key::P, Window, WindowOptions};
-use rand::RngExt;
-use crate::LENGTH;
-use crate::BLOB_SIZE;
-use crate::BORDER;
-use crate::paint::{paint_blob, Color};
-
+use crate::WINDOW_SIZE;
+use crate::CELL_SIZE;
 
 #[derive(Clone, Copy)]
-pub struct Position {
-    pub x: usize,
-    pub y: usize,
+pub struct Coordinate {
+    row: usize,
+    column: usize,
 }
-
-impl Position {
-    pub fn new(x: usize, y: usize) -> Self {
-        Self {
-            x: x,
-            y: y,
-        }
-    }
-}
-
 pub enum Direction {
     Up,
     Down,
@@ -31,50 +15,72 @@ pub enum Direction {
     Right,
 }
 
+#[derive(Clone, Copy)]
+pub enum GameObject {
+    Boarder,
+    Empty,
+    SnakeHead,
+    SnakeBody,
+    Apple
+}
+
+pub struct Game {
+    alive: bool,
+    window: Window,
+    state: Vec<Vec<GameObject>>,
+    buffer: Vec<u32>,
+    snake: Snake,
+}
+
 pub struct Snake {
-    pub position: Position,
-    pub direction: Direction,
+    positions: Vec<Coordinate>,
+    direction: Direction,
 }
 
 impl Snake {
-    pub fn new() -> Self {
+    pub fn new(positions: Vec<Coordinate>) -> Self {
         Self {
-            position: Position::new(LENGTH / 2 , LENGTH / 2),
-            direction: Direction::Up,
+            positions,
+            direction: Direction::Right,
         }
     }
 }
-
-struct Fruit {
-    position: Position,
-}
-
-impl Fruit {
-    pub fn new() -> Self {
-        let mut rng = rand::rng();
-        Self {
-            position: Position::new(rng.random_range(0..LENGTH), rng.random_range(0..LENGTH)),
-        }
-
-    }
-}
-pub struct Game {
-    snake: Snake,
-    fruit: Fruit,
-    alive: bool,
-    window: Window,
-    buffer: Vec<u32>
-}
-
 
 impl Game {
     pub fn new() -> Self {
+        use GameObject:: {
+            Boarder as B,
+            Empty as E,
+            SnakeHead as H,
+            SnakeBody as S,
+            Apple as A,
+        };
+        // 10 x 10 matrix
+        let state = vec![
+            vec![B, B, B, B, B, B, B, B, B, B],
+            vec![B, E, E, E, E, E, E, E, E, B],
+            vec![B, E, E, E, E, A, E, E, E, B],
+            vec![B, E, E, E, E, E, E, E, E, B],
+            vec![B, E, E, E, E, E, E, E, E, B],
+            vec![B, E, S, S, H, E, E, E, E, B],
+            vec![B, E, E, E, E, E, E, E, E, B],
+            vec![B, E, E, E, E, E, E, E, E, B],
+            vec![B, E, E, E, E, E, E, E, E, B],
+            vec![B, B, B, B, B, B, B, B, B, B],
+        ];
+
+        let snake_positions = vec![
+            Coordinate {column: 4, row: 5},
+            Coordinate {column: 3, row: 5},
+            Coordinate {column: 2, row: 5},
+        ];
+
         Self {
-            snake: Snake::new(),
-            fruit: Fruit::new(),
             alive: true,
-            window: Window::new("Snake Game", LENGTH, LENGTH, WindowOptions::default()).expect("Error opening window"),
-            buffer: vec![0; LENGTH * LENGTH],
+            window: Window::new("Snake Game", WINDOW_SIZE, WINDOW_SIZE, WindowOptions::default()).expect("Error opening window"),
+            state,
+            buffer: vec![0; WINDOW_SIZE * WINDOW_SIZE],
+            snake: Snake::new(snake_positions),
         }
     }
 
@@ -82,69 +88,81 @@ impl Game {
         return self.alive;
     }
 
-    fn kill_game(&mut self) {
-        self.alive = false;
+    pub fn render_game(&mut self) {
+        for row in 0..self.state.len() {
+            for column in 0..self.state[row].len() {
+                let element = self.state[row][column];
+                self.render(row, column, element);
+            }
+        }
+        self.window.update_with_buffer(&mut self.buffer, WINDOW_SIZE, WINDOW_SIZE).expect("test");
     }
 
-    pub fn init_game(&mut self) {
-        crate::paint::create_boarder(&mut self.buffer);
+    pub fn render(&mut self, row: usize, column: usize, game_object: GameObject) {
+        let y_start: usize = row * CELL_SIZE;
+        let x_start: usize = column * CELL_SIZE;
+
+        for x_point in x_start..x_start + CELL_SIZE {
+            for y_point in y_start..y_start + CELL_SIZE {
+                self.paint(x_point, y_point, game_object);
+            }
+        }
+    }
+
+    pub fn paint(&mut self, x_point: usize, y_point: usize, game_object: GameObject) {
+        let color = match game_object {
+            GameObject::Boarder => color(0, 0, 139),
+            GameObject::Empty => color(0, 0, 0),
+            GameObject::Apple => color(255, 0, 0),
+            GameObject::SnakeBody => color(255, 255, 255),
+            GameObject::SnakeHead => color(0, 255, 0),
+        };
+        self.buffer[y_point * WINDOW_SIZE + x_point] = color;
     }
 
     pub fn update(&mut self) {
-        self.window.update_with_buffer(&mut self.buffer, LENGTH,LENGTH);
-        paint_blob(&mut self.buffer, &mut self.snake.position, Color::White);
         self.move_snake();
+        // check snakehead == apple | boarder | body
     }
 
-    fn is_in_bounds(&mut self) {
-        let pos = self.snake.position;
-        if pos.x - BLOB_SIZE < BORDER || pos.x + BLOB_SIZE >= LENGTH - BORDER || pos.y - BLOB_SIZE <  BORDER || pos.y + BLOB_SIZE >= LENGTH - 100 {
-            println!("Snake out of bounds. Game over!");
-            self.kill_game();
-        }
+    pub fn move_snake(&mut self) {
+        let old_head = self.snake.positions[0];
+
+        let new_head = match self.snake.direction {
+            Direction::Up => { Coordinate { column: old_head.column, row: old_head.row - 1 }},
+            Direction::Down => { Coordinate { column: old_head.column, row: old_head.row + 1 }},
+            Direction::Left => { Coordinate { column: old_head.column - 1, row: old_head.row }},
+            Direction::Right => { Coordinate { column: old_head.column + 1, row: old_head.row }},
+        };
+        let old_tail = self.snake.positions.pop().unwrap();
+        self.change_state(old_head, GameObject::SnakeBody);
+        self.change_state(new_head, GameObject::SnakeHead);
+        self.change_state(old_tail, GameObject::Empty);
+        self.snake.positions.insert(0, new_head);
     }
 
-    fn move_snake(&mut self) {
-        let old_pos = self.snake.position;
-        self.recalc_pos();
-        let new_pos = self.snake.position;
-        self.is_in_bounds();
-        paint_blob(&mut self.buffer, &old_pos, Color::Black);
-        paint_blob(&mut self.buffer, &new_pos, Color::White);
+    pub fn change_state(&mut self, position: Coordinate, game_object: GameObject) {
+        self.state[position.row][position.column] = game_object;
     }
 
-     fn recalc_pos(&mut self) {
-        let cp =  self.snake.position;
-        const MOVE_PIXELS: usize = 5;
-        match self.snake.direction {
-            Direction::Up => { 
-                let new_position = Position::new(cp.x, cp.y - MOVE_PIXELS);
-                self.snake.position = new_position;
-            },
-            Direction::Down => { 
-                let new_position = Position::new(cp.x, cp.y + MOVE_PIXELS);
-                self.snake.position = new_position;
-            },
-            Direction::Right => { 
-                let new_position = Position::new(cp.x + MOVE_PIXELS, cp.y);
-                self.snake.position = new_position;
-            },
-            Direction::Left => { 
-                let new_position = Position::new(cp.x - MOVE_PIXELS, cp.y);
-                self.snake.position = new_position;
-            },
-        }
-    }
-
-    pub fn read_inputs_and_change_direction(&mut self) {
-        self.window.get_keys_pressed(KeyRepeat::No).iter().for_each(|key: &Key|
+    pub fn change_direction(&mut self) {
+        self.window.get_keys_pressed(KeyRepeat::Yes).iter().for_each(|key|
         match key {
             Key::Up => self.snake.direction = Direction::Up,
             Key::Down => self.snake.direction = Direction::Down,
             Key::Left => self.snake.direction = Direction::Left,
             Key::Right => self.snake.direction = Direction::Right,
             _ => (),
-            }
-        );
+        }
+    );
     }
+    
 }
+
+/**
+     *  Utility function to encode 0RGB 32 bit pixel buffer
+     */
+    fn color(r: u8, g: u8, b: u8) -> u32 {
+        let (r, g, b) = (r as u32, g as u32, b as u32);
+        (r << 16) | (g << 8) | b
+    }
