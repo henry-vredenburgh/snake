@@ -7,16 +7,18 @@ pub const CELL_SIZE: usize = WINDOW_SIZE / MATRIX_SIZE; // size of each matrix c
 
 
 fn main() {
-    let snake_tick = Duration::from_millis(250);
-    let mut last_snake_update = Instant::now();
-
+    let tick = Duration::from_millis(100);
+    let mut last_update = Instant::now();
     let mut game = game::Game::new();
     while game.is_running() {
-        if last_snake_update.elapsed() >= snake_tick {
-            game.render_game();
-            game.update();
-            last_snake_update = Instant::now();
-        }
         game.change_direction();
+        if last_update.elapsed() >= tick {
+            game.update();
+            last_update = Instant::now();
+        }
+        game.render_game();
     }
+    let score = game.score;
+    drop(game);
+    println!("Game Over! You ate {} apples", score);
 }

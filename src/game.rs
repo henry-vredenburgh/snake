@@ -1,6 +1,7 @@
 use minifb::{Key, KeyRepeat};
-use minifb::{Key::P, Window, WindowOptions};
-use crate::WINDOW_SIZE;
+use minifb::{Window, WindowOptions};
+use rand::{RngExt};
+use crate::{MATRIX_SIZE, WINDOW_SIZE};
 use crate::CELL_SIZE;
 
 #[derive(Clone, Copy)]
@@ -15,7 +16,7 @@ pub enum Direction {
     Right,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum GameObject {
     Boarder,
     Empty,
@@ -30,6 +31,7 @@ pub struct Game {
     state: Vec<Vec<GameObject>>,
     buffer: Vec<u32>,
     snake: Snake,
+    pub score: u8,
 }
 
 pub struct Snake {
@@ -81,6 +83,7 @@ impl Game {
             state,
             buffer: vec![0; WINDOW_SIZE * WINDOW_SIZE],
             snake: Snake::new(snake_positions),
+            score: 0,
         }
     }
 
@@ -125,9 +128,18 @@ impl Game {
         // check snakehead == apple | boarder | body
     }
 
-    pub fn move_snake(&mut self) {
-        let old_head = self.snake.positions[0];
+    pub fn check_status(&mut self, head: &Coordinate) {
+        match self.state[head.row][head.column] {
+            GameObject::Boarder => {self.alive = false},
+            GameObject::SnakeBody => {self.alive = false},
+            GameObject::Apple => {self.apple_eaten()},
+            _ => (),
+        }
+    }
 
+    pub fn move_snake(&mut self) {
+        // define important coordinates
+        let old_head = self.snake.positions[0];
         let new_head = match self.snake.direction {
             Direction::Up => { Coordinate { column: old_head.column, row: old_head.row - 1 }},
             Direction::Down => { Coordinate { column: old_head.column, row: old_head.row + 1 }},
@@ -135,9 +147,15 @@ impl Game {
             Direction::Right => { Coordinate { column: old_head.column + 1, row: old_head.row }},
         };
         let old_tail = self.snake.positions.pop().unwrap();
+
+        self.check_status(&new_head);
+
+        // change state matrix
         self.change_state(old_head, GameObject::SnakeBody);
         self.change_state(new_head, GameObject::SnakeHead);
         self.change_state(old_tail, GameObject::Empty);
+
+        // add new head to snake vector
         self.snake.positions.insert(0, new_head);
     }
 
@@ -146,7 +164,7 @@ impl Game {
     }
 
     pub fn change_direction(&mut self) {
-        self.window.get_keys_pressed(KeyRepeat::Yes).iter().for_each(|key|
+        self.window.get_keys_pressed(KeyRepeat::No).iter().for_each(|key|
         match key {
             Key::Up => self.snake.direction = Direction::Up,
             Key::Down => self.snake.direction = Direction::Down,
@@ -155,6 +173,22 @@ impl Game {
             _ => (),
         }
     );
+    }
+
+    pub fn apple_eaten(&mut self) {
+        self.score += 1;
+        let mut rng = rand::rng();
+
+        loop {
+            let row = rng.random_range(0..MATRIX_SIZE - 1);
+            let column = rng.random_range(0..MATRIX_SIZE - 1);
+            let object = self.state[row][column];
+
+            if object == GameObject::Empty {
+                self.state[row][column] = GameObject::Apple;
+                return;
+            }
+        }
     }
     
 }
