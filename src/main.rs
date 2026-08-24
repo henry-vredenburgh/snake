@@ -1,13 +1,13 @@
 mod game;
 use std::time::{Duration, Instant};
 
-pub const WINDOW_SIZE: usize = 800; // represents 800x800 px screen
+pub const WINDOW_SIZE: usize = 1200; // represents 800x800 px screen
 pub const MATRIX_SIZE: usize = 10; // represents 10x10 matrix
 pub const CELL_SIZE: usize = WINDOW_SIZE / MATRIX_SIZE; // size of each matrix cell in pixels
 
 
 fn main() {
-    let tick = Duration::from_millis(100);
+    let tick: Duration = Duration::from_millis(110);
     let mut last_update = Instant::now();
     let mut game = game::Game::new();
     while game.is_running() {
