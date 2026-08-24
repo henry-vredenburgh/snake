@@ -101,7 +101,7 @@ impl Game {
         self.window.update_with_buffer(&mut self.buffer, WINDOW_SIZE, WINDOW_SIZE).expect("test");
     }
 
-    pub fn render(&mut self, row: usize, column: usize, game_object: GameObject) {
+    fn render(&mut self, row: usize, column: usize, game_object: GameObject) {
         let y_start: usize = row * CELL_SIZE;
         let x_start: usize = column * CELL_SIZE;
 
@@ -112,7 +112,7 @@ impl Game {
         }
     }
 
-    pub fn paint(&mut self, x_point: usize, y_point: usize, game_object: GameObject) {
+    fn paint(&mut self, x_point: usize, y_point: usize, game_object: GameObject) {
         let color = match game_object {
             GameObject::Boarder => color(0, 0, 139),
             GameObject::Empty => color(0, 0, 0),
@@ -127,7 +127,7 @@ impl Game {
         self.move_snake();
     }
 
-    pub fn is_dead_or_apple(&mut self, head: &Coordinate) -> bool {
+    fn is_dead_or_apple(&mut self, head: &Coordinate) -> bool {
         match self.state[head.row][head.column] {
             GameObject::Boarder => {self.alive = false; false},
             GameObject::SnakeBody => {self.alive = false; false},
@@ -160,7 +160,7 @@ impl Game {
         self.snake.positions.insert(0, new_head);
     }
 
-    pub fn change_state(&mut self, position: Coordinate, game_object: GameObject) {
+    fn change_state(&mut self, position: Coordinate, game_object: GameObject) {
         self.state[position.row][position.column] = game_object;
     }
 
@@ -176,7 +176,7 @@ impl Game {
     );
     }
 
-    pub fn apple_eaten(&mut self) {
+    fn apple_eaten(&mut self) {
         self.score += 1;
         let mut rng = rand::rng();
 
