@@ -65,7 +65,7 @@ impl Game {
             vec![B, E, E, E, E, A, E, E, E, B],
             vec![B, E, E, E, E, E, E, E, E, B],
             vec![B, E, E, E, E, E, E, E, E, B],
-            vec![B, E, S, S, H, E, E, E, E, B],
+            vec![B, S, S, H, E, E, E, E, E, B],
             vec![B, E, E, E, E, E, E, E, E, B],
             vec![B, E, E, E, E, E, E, E, E, B],
             vec![B, E, E, E, E, E, E, E, E, B],
@@ -73,9 +73,9 @@ impl Game {
         ];
 
         let snake_positions = vec![
-            Coordinate {column: 4, row: 5},
             Coordinate {column: 3, row: 5},
             Coordinate {column: 2, row: 5},
+            Coordinate {column: 1, row: 5},
         ];
 
         Self {
@@ -213,8 +213,18 @@ impl Game {
     pub fn get_score(&self) -> u8 {
         self.score
     }
-    
-}
+
+    pub fn wait(&mut self) {
+        while self.window.is_open() {
+            let _ = self.window.update_with_buffer(&self.buffer, WINDOW_SIZE, WINDOW_SIZE);
+
+            if !self.window.get_keys_pressed(KeyRepeat::No).is_empty() {
+                return;
+            }
+        }
+        self.alive = false;
+    }
+}   
 
 /**
      *  Utility function to encode 0RGB 32 bit pixel buffer
