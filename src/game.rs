@@ -9,6 +9,7 @@ pub struct Coordinate {
     row: usize,
     column: usize,
 }
+#[derive(PartialEq)]
 pub enum Direction {
     Up,
     Down,
@@ -124,6 +125,7 @@ impl Game {
     }
 
     pub fn update(&mut self) {
+
         self.move_snake();
     }
 
@@ -167,10 +169,26 @@ impl Game {
     pub fn change_direction(&mut self) {
         self.window.get_keys_pressed(KeyRepeat::No).iter().for_each(|key|
         match key {
-            Key::Up => self.snake.direction = Direction::Up,
-            Key::Down => self.snake.direction = Direction::Down,
-            Key::Left => self.snake.direction = Direction::Left,
-            Key::Right => self.snake.direction = Direction::Right,
+            Key::Up => {
+                if self.snake.direction != Direction::Down || self.snake.direction == Direction::Up {
+                    self.snake.direction = Direction::Up;
+                }
+            }
+            Key::Down => {
+                if self.snake.direction != Direction::Up || self.snake.direction == Direction::Down {
+                    self.snake.direction = Direction::Down;
+                }
+            }
+            Key::Left => {
+                if self.snake.direction != Direction::Right || self.snake.direction == Direction::Left {
+                    self.snake.direction = Direction::Left;
+                }
+            }
+            Key::Right => {
+                if self.snake.direction != Direction::Left || self.snake.direction == Direction::Right {
+                    self.snake.direction = Direction::Right;
+                }
+            }
             _ => (),
         }
     );
