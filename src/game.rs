@@ -31,7 +31,7 @@ pub struct Game {
     state: Vec<Vec<GameObject>>,
     buffer: Vec<u32>,
     snake: Snake,
-    pub score: u8,
+    score: u8,
 }
 
 pub struct Snake {
@@ -125,15 +125,14 @@ impl Game {
 
     pub fn update(&mut self) {
         self.move_snake();
-        // check snakehead == apple | boarder | body
     }
 
-    pub fn check_status(&mut self, head: &Coordinate) {
+    pub fn is_dead_or_apple(&mut self, head: &Coordinate) -> bool {
         match self.state[head.row][head.column] {
-            GameObject::Boarder => {self.alive = false},
-            GameObject::SnakeBody => {self.alive = false},
-            GameObject::Apple => {self.apple_eaten()},
-            _ => (),
+            GameObject::Boarder => {self.alive = false; false},
+            GameObject::SnakeBody => {self.alive = false; false},
+            GameObject::Apple => {self.apple_eaten(); true},
+            _ => {false},
         }
     }
 
@@ -146,15 +145,17 @@ impl Game {
             Direction::Left => { Coordinate { column: old_head.column - 1, row: old_head.row }},
             Direction::Right => { Coordinate { column: old_head.column + 1, row: old_head.row }},
         };
-        let old_tail = self.snake.positions.pop().unwrap();
 
-        self.check_status(&new_head);
+        let apple: bool = self.is_dead_or_apple(&new_head);
+        if !apple {
+            let old_tail = self.snake.positions.pop().unwrap();
+            self.change_state(old_tail, GameObject::Empty);
+        }
 
         // change state matrix
         self.change_state(old_head, GameObject::SnakeBody);
         self.change_state(new_head, GameObject::SnakeHead);
-        self.change_state(old_tail, GameObject::Empty);
-
+        
         // add new head to snake vector
         self.snake.positions.insert(0, new_head);
     }
@@ -189,6 +190,10 @@ impl Game {
                 return;
             }
         }
+    }
+
+    pub fn get_score(&self) -> u8 {
+        self.score
     }
     
 }

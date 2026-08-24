@@ -18,7 +18,7 @@ fn main() {
         }
         game.render_game();
     }
-    let score = game.score;
+    let score = game.get_score();
     drop(game);
     println!("Game Over! You ate {} apples", score);
 }
